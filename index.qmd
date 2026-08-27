@@ -1,5 +1,5 @@
 ---
-title: "BSC 6926 B52 Fall 2025"
+title: "BSC 6926 B52 Fall 2026"
 format: html
 ---
 
