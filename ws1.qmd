@@ -1,7 +1,7 @@
 ---
 title: "Workshop 1: Intro to R"
 author: "BSC 6926 B52"
-date: "8/28/2025"
+date: "8/27/2026"
 format:
   html:
     toc: true
