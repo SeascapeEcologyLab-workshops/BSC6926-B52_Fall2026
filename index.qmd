@@ -10,7 +10,7 @@ This is the course website for the R workshop that coincides with PCB 5423 (Adva
 ### Class Resources
 
 -   [Zoom link](https://fiu.zoom.us/j/94001884298?pwd=b25VZTh6eHFlOVdjRDhrbUV6OTBVZz09)
--   [Github repository](https://github.com/SeascapeEcologyLab-workshops/BSC6926-B52_Fall2025)
+-   [Github repository](https://github.com/SeascapeEcologyLab-workshops/BSC6926-B52_Fall2026)
 -   Textbook for R exercises (S) Stevens, M.H.H. 2010. A primer of ecology with R. ISBN 978-0-387-89881-0 (Electronically available at FIU Library) [E-book version](https://hankstevens.github.io/Primer-of-Ecology/)
 
 ### R Resources
