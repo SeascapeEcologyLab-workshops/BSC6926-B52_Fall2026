@@ -1,6 +1,6 @@
 # title: "Workshop 3: Introduction to R"
 # author: "BSC 6926 B52"
-# date: "9/11/2025"
+# date: "9/10/2026"
 
 # ## Conditional statements, for loops, vector operations, quarto/rmardown 
 # This workshop continues basics of R working more with conditional statements, for loops, vector operations, and quarto/rmarkdown:
@@ -164,6 +164,8 @@ df
 df = df |> 
   mutate(year = year(d1),
          month = month(d1))
+
+df
 
 # ### `purr`
 # The newest and new standard package with `tidyverse` is `purr` with its set of `map()` functions. Some similarity to `plyr` (and base) and `dplyr` functions but with more consistent names and arguments. Notice that map function can have some specification for the type of output.
