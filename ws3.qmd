@@ -30,7 +30,7 @@ This workshop continues basics of R working more with conditional statements, fo
 4.  Quarto/rmarkdown
 5.  Exercises
 
-R script: \[github\]https://github.com/SeascapeEcologyLab-workshops/BSC6926-B52_Fall2024/blob/main/workshopScripts/workshop3.R)
+R script: [github](https://github.com/SeascapeEcologyLab-workshops/BSC6926-B52_Fall2026/blob/main/workshopScripts/workshop3.R)
 
 [R script of workshop 3](workshopScripts/workshop3.R)
 
