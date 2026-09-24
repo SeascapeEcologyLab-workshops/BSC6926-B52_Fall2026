@@ -252,7 +252,7 @@ dplyr::sample_n(df, size = 3, replace = T)
 dplyr::sample_n(df, size = 10, replace = T, weight = prob)
 ```
 
-### Density independent continuous population models
+## Density independent continuous population models
 
 $r$ is the instantaneous per capita growth rate. It's value determines how population size will change over time.
 
