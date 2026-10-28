@@ -197,6 +197,10 @@ window.Quarto = {
     <a class="nav-link active" href="./ws7.html" aria-current="page"> 
 <span class="menu-text">WS 7</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./ws8.html"> 
+<span class="menu-text">WS 8</span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -538,7 +542,7 @@ window.Quarto = {
 <span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">=</span> marsh_l <span class="sc">|&gt;</span> <span class="fu">filter</span>(site <span class="sc">==</span> df<span class="sc">$</span>site[i],</span>
 <span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>                          month <span class="sc">==</span> df<span class="sc">$</span>month[i],</span>
 <span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>                          Count <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">=</span> d <span class="sc">|&gt;</span> <span class="fu">count</span>(Species,<span class="at">wt =</span> Count) <span class="sc">|&gt;</span> </span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">=</span> d <span class="sc">|&gt;</span> <span class="fu">count</span>(Species,<span class="at">wt =</span> Count) <span class="sc">|&gt;</span> <span class="co"># same as group_by(Species) |&gt; summarize(sum(Count))</span></span>
 <span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">pi =</span> n<span class="sc">/</span><span class="fu">sum</span>(n),</span>
 <span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>           <span class="at">ln_pi =</span> <span class="fu">log</span>(pi),</span>
 <span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>           <span class="at">p_ln_pi =</span> pi<span class="sc">*</span>ln_pi)</span>

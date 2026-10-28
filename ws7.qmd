@@ -145,7 +145,7 @@ for (i in 1:nrow(df)){
   d = marsh_l |> filter(site == df$site[i],
                           month == df$month[i],
                           Count > 0)
-  d = d |> count(Species,wt = Count) |> 
+  d = d |> count(Species,wt = Count) |> # same as group_by(Species) |> summarize(sum(Count))
     mutate(pi = n/sum(n),
            ln_pi = log(pi),
            p_ln_pi = pi*ln_pi)
