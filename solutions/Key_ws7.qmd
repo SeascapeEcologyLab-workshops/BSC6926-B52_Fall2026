@@ -1,0 +1,175 @@
+---
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: yeti
+---
+## Key for workshop 7 exercises
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = T, cache = T)
+```
+
+
+1. Using the Calcasieu seine dataset, calculate the species richness for each month at each site and plot over the year. 
+
+```{r}
+library(tidyverse)
+library(viridis)
+
+df = read_csv('data/Calcasieu.csv') |> 
+  mutate(site = as.character(site),
+         month = month(date)) |> 
+  pivot_longer(cols = 4:62, 
+               names_to = "Species", 
+               values_to = "Count") |> 
+  filter(Count > 0) |> 
+  group_by(month,site) |> 
+  summarize(richness = n_distinct(Species))
+
+
+ggplot(df, aes(month, richness, color = site))+
+  geom_point(size = 1.5)+
+  geom_line()+
+  scale_color_viridis_d()+
+  theme_bw()
+  
+```
+
+2. Calculate the average Shannon and Simpson indices for the fall (Sep-Nov) and Spring (March-May) for site 30. 
+
+```{r}
+df = read_csv('data/Calcasieu.csv') |>
+  mutate(site = as.character(site),
+         month = month(date)) |> 
+  filter(site == '30') |> 
+  pivot_longer(cols = 4:62, 
+               names_to = "Species", 
+               values_to = "Count") |> 
+  mutate(season = case_when(
+    month %in% c(9,10,11) ~ 'Fall',
+    month %in% c(3,4,5) ~ 'Spring'
+  )) |> 
+  filter(Count > 0) |> 
+  drop_na(season) 
+
+
+# simpson
+df |> 
+  group_by(season) |>  
+  mutate(Total = sum(Count)) |> 
+  ungroup() |> 
+  group_by(season, Species) |>
+  summarize(Count_Spp = sum(Count),
+            Total_Count = max(Total)) |> 
+  mutate(p = Count_Spp/Total_Count, 
+         p2 = p^2) |> 
+  ungroup() |> 
+  group_by(season) |> 
+  summarise(s_dominance = sum(p2),
+            s_evenness = 1 - s_dominance,
+            inverse_s = 1/s_dominance) |> 
+  ungroup() |> 
+  summarize(across(s_dominance:inverse_s, mean))
+
+
+```
+
+
+3. _Challenge_: Calculate the average species accumulation curve for site 16 and site 28. Plot your results.
+
+```{r}
+# curve for site 15
+df = read_csv('data/Calcasieu.csv') |> 
+  mutate(site = as.character(site),
+         month = month(date)) |> 
+  pivot_longer(cols = 4:62, 
+               names_to = "Species", 
+               values_to = "Count") |> 
+  filter(Count > 0) 
+
+m16 = df |> 
+  filter(site == '16')|> 
+  group_by(site, date) |> 
+  mutate(sample_ID = cur_group_id()) |> 
+  ungroup()
+
+
+m16_sample_ID  = unique(m16$sample_ID)
+
+iterations = 50
+
+# store data
+sp_m16 = tibble(site = '16', 
+               n_samp = rep(1:length(m16_sample_ID),times = iterations), 
+               n_spp = NA,
+               i = rep(1:iterations, each = length(m16_sample_ID)))
+
+for (j in 1:iterations) {
+  # create random sample order
+  sID = sample(m16_sample_ID)
+  for (i in 1:length(m16_sample_ID)) {
+    # sample ID to include
+    samp = sID[1:i]
+    
+    # include only sample numbers
+    d = m16 |>
+      filter(sample_ID %in% samp,
+             Count > 0)
+    
+    sp_m16$n_spp[i+((j-1)*length(m16_sample_ID))] = length(unique(d$Species))
+  }
+}
+
+m28 = df |> 
+  filter(site == '28')|> 
+  group_by(site, date) |> 
+  mutate(sample_ID = cur_group_id()) |> 
+  ungroup()
+
+
+m28_sample_ID  = unique(m28$sample_ID)
+
+iterations = 50
+
+# store data
+sp_m28 = tibble(site = '28', 
+               n_samp = rep(1:length(m28_sample_ID),times = iterations), 
+               n_spp = NA,
+               i = rep(1:iterations, each = length(m28_sample_ID)))
+
+for (j in 1:iterations) {
+  # create random sample order
+  sID = sample(m28_sample_ID)
+  for (i in 1:length(m28_sample_ID)) {
+    # sample ID to include
+    samp = sID[1:i]
+    
+    # include only sample numbers
+    d = m28 |>
+      filter(sample_ID %in% samp,
+             Count > 0)
+    
+    sp_m28$n_spp[i+((j-1)*length(m28_sample_ID))] = length(unique(d$Species))
+  }
+}
+
+
+avg = bind_rows(sp_m16, sp_m28) |> 
+  group_by(site, n_samp) |> 
+  summarize(m_spp = mean(n_spp, na.rm = T),
+            sd_spp = sd(n_spp, na.rm = T))
+
+ggplot(avg, aes(n_samp, m_spp, group = site))+
+  geom_ribbon(aes(ymin = m_spp - sd_spp, ymax = m_spp + sd_spp, 
+                  fill = site), alpha = 0.3)+
+  geom_line(aes(color = site), 
+            linewidth = 1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  labs(x = 'Number of Samples',
+       y = 'Number of Species',
+       color = 'site')+
+  theme_bw()
+```
+
