@@ -142,3 +142,85 @@ ggplot(df_t |> filter(species == 'Blue Crab'), aes(year, Nt))+
 
 ggsave('data/q1_figure.png', dpi = 600, width = 10, height = 6, units = 'in')
 
+# q2 
+file_names = c(
+  Normal = "data/projection_matrix_normal.csv",
+  Low    = "data/projection_matrix_low.csv",
+  Medium = "data/projection_matrix_medium.csv",
+  High   = "data/projection_matrix_high.csv"
+)
+
+matrix_list = map(file_names, function(file) {
+  df = read_csv(file, show_col_types = FALSE)
+  mat = as.matrix(df[, -1])
+  rownames(mat) = df[[1]]
+  return(mat)
+})
+
+# Access individual matrices from the list
+A_normal = matrix_list[["Normal"]]
+A_low    = matrix_list[["Low"]]
+A_medium = matrix_list[["Medium"]]
+A_high   = matrix_list[["High"]]
+
+
+
+q2a = list(A_normal, A_low)
+
+p1 = c(Colonies = 1000, Fragments = 200, Crusts = 200)
+p2 = c(Colonies = 200, Fragments = 1000, Crusts = 200)
+p3 = c(Colonies = 200, Fragments = 200, Crusts = 1000)
+
+pp1 = stoch.projection(matrices = q2a, n0 = p1, tmax = 50, nreps = 100, prob = c(0.9, 0.1)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'Colonies')
+
+pp2 = stoch.projection(matrices = q2a, n0 = p2, tmax = 50, nreps = 100, prob = c(0.9, 0.1)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'Fragments')
+
+pp3 = stoch.projection(matrices = q2a, n0 = p3, tmax = 50, nreps = 100, prob = c(0.9, 0.1)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'Crusts')
+
+pp = bind_rows(pp1, pp2, pp3)
+
+ggplot(pp, aes(total, fill = type)) +
+  geom_density(alpha = 0.5) +
+  labs(x = 'Ending population size', color = NULL) +
+  theme_bw()
+
+q2b = list(A_normal, A_low, A_high)
+
+p = c(Colonies = 1000, Fragments = 1000, Crusts = 1000)
+
+ps1 = stoch.projection(matrices = q2b, n0 = p, tmax = 50, nreps = 100, prob = c(0.9, 0.05, 0.05)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'equal')
+
+ps2 = stoch.projection(matrices = q2b, n0 = p, tmax = 50, nreps = 100, prob = c(0.9, 0.08, 0.02)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'higher low')
+
+ps3 = stoch.projection(matrices = q2b, n0 = p, tmax = 50, nreps = 100, prob = c(0.9, 0.02, 0.02)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'higher high')
+
+ps = bind_rows(ps1, ps2, ps3)
+
+ggplot(ps, aes(total, fill = type)) +
+  geom_density(alpha = 0.5) +
+  labs(x = 'Ending population size', color = NULL) +
+  theme_bw()
