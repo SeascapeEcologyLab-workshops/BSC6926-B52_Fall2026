@@ -1,0 +1,176 @@
+---
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: yeti
+---
+## Key for workshop 8 exercises
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = T, cache = T)
+```
+
+
+## Exercises
+For these exercises use the [LDWF Pontchartrain seine sampling dataset](https://github.com/SeascapeEcologyLab-workshops/BSC6926-B52_Fall2025/blob/main/data/Pontchartrain.csv). This dataset is the abundance for each species (in wide format) for 16 sites over 1 year.
+
+1. Using the Pontchartrain dataset calculate the mean and SD for species richness, Shannon, Simpson, and inverse Simpson for each sampling site.
+
+```{r}
+library(vegan)
+library(tidyverse)
+
+df = read_csv('data/Pontchartrain.csv') |> 
+  mutate(richness = specnumber(across(`Skipjack Herring`:`Feather Blenny`)),
+         H = diversity(across(`Skipjack Herring`:`Feather Blenny`)),
+         simp = diversity(across(`Skipjack Herring`:`Feather Blenny`), "simpson"),
+         invsimp = diversity(across(`Skipjack Herring`:`Feather Blenny`),"inv"))
+
+d = df |> 
+  group_by(site) |> 
+  summarize(across(richness:invsimp, list(mean = mean, sd = sd)))
+
+d
+```
+
+
+2. Plot the dominance (Whittiker) and K-dominance curves for each site.
+
+```{r}
+library(viridis)
+marsh_w = read_csv('data/Pontchartrain.csv') |> 
+  mutate(site = as.character(site),
+         month = month(date),
+         richness = specnumber(across(`Skipjack Herring`:`Feather Blenny`))) 
+
+marsh_l = marsh_w |> 
+  pivot_longer(cols = 3:73, 
+               names_to = "Species", 
+               values_to = "Count") 
+
+df = marsh_l |> 
+    group_by(site) |> 
+    filter(Count > 0) |> 
+    mutate(Total = sum(Count)) |> 
+    group_by(site, Species) |>
+    summarise(Count_Spp = sum(Count),
+              Total_Count = max(Total)) |> 
+    mutate(p_i = Count_Spp/Total_Count, 
+           rank = length(unique(Species))-rank(p_i)) |> 
+    ungroup()
+
+ggplot(df, aes(rank, p_i, color = site))+
+  geom_line(size = 1)+
+  labs(x = 'Species rank',
+       y = 'Dominance',
+       color = 'site')+
+  scale_color_viridis_d()+
+  theme_bw()
+
+## K-dominance curves
+# Cumulative dominance by species rank
+
+
+df = marsh_l |> 
+    group_by(site) |> 
+    filter(Count > 0) |> 
+    mutate(Total = sum(Count)) |> 
+    ungroup() |> 
+    group_by(site, Species) |>
+    summarise(Count_Spp = sum(Count),
+              Total_Count = max(Total)) |> 
+    mutate(p_i = Count_Spp/Total_Count, 
+           rank = length(unique(Species))-rank(p_i)) |> 
+    arrange(rank, .by_group = T) |> 
+  mutate(cumsum = cumsum(p_i))
+
+ggplot(df, aes(rank, cumsum, color = site))+
+  geom_line(size = 1)+
+  labs(x = 'Species rank',
+       y = 'Cumulative Dominance',
+       color = 'site')+
+  scale_color_viridis_d()+
+  theme_bw()
+
+
+```
+
+
+3. Plot the $\alpha$, $\beta$, and $\gamma$ diversity for each site for each sampling date in 2007. Use either additive or multiplicative $\beta$ diversity. Plot diversity over time.
+
+```{r}
+marsh_w = read_csv('data/Pontchartrain.csv') |> 
+  mutate(site = as.character(site),
+         month = month(date),
+         richness = specnumber(across(`Skipjack Herring`:`Feather Blenny`))) 
+
+marsh_l = marsh_w |> 
+  pivot_longer(cols = 3:73, 
+               names_to = "Species", 
+               values_to = "Count") 
+
+marsh_l
+
+gammaDiv = length(unique(marsh_l$Species))
+
+# calculate beta diversity
+betaDiv = marsh_w |> 
+  group_by(month) |> 
+  summarise(alpha = mean(richness, na.rm = TRUE),
+            gamma = gammaDiv,
+            beta_a = gamma - alpha,
+            beta_m = gamma/alpha) |> 
+  pivot_longer(alpha:beta_m, names_to = 'metric', values_to = 'value')
+
+# plot 
+
+ggplot(betaDiv, aes(month, value, color= metric))+
+  geom_point(size = 2)+
+  geom_line(linewidth = 1)+
+  scale_y_continuous(limits = c(0,75))+
+  scale_color_viridis_d(labels = c(expression(alpha),
+                                   expression(beta ~ 'additive'),
+                                   expression(beta ~ 'multiplicative'),
+                                   expression(gamma)))+
+  labs(x = 'Month', y = 'Diversity', color = 'Diversity')+
+  theme_bw()
+
+
+```
+
+
+4. Plot the Bray-Curtis and Jaccard dissimilarity for each site.
+
+```{r}
+df = read_csv('data/Pontchartrain.csv')|>
+  group_by(site) |> 
+  summarise(across(`Skipjack Herring`:`Feather Blenny`, mean))
+  
+  
+marsh_comm = df |> 
+  select(-site)
+
+site = df$site
+
+marsh.nmds.bc = metaMDS(marsh_comm, distance = "bray", k = 2, try = 100)
+marsh.nmds.jc = metaMDS(marsh_comm, distance = "jaccard", k = 2, try = 100)
+
+bc = data.frame(marsh.nmds.bc[["points"]]) |> 
+  mutate(site = site, 
+         Dissimilarity = 'Bray-curtis')
+
+jc = data.frame(marsh.nmds.jc[["points"]]) |> 
+  mutate(site = site, 
+         Dissimilarity = 'Jaccard')
+
+nmds_output = bind_rows(bc,jc) |> as_tibble()
+
+ggplot(nmds_output, aes(MDS1, MDS2, color = as.factor(site)))+
+  geom_point(size = 4)+ 
+  facet_wrap(~Dissimilarity)+
+  labs(color = 'site')+
+  scale_color_viridis_d(option = 'turbo')+
+  theme_bw()
+
+```
+
