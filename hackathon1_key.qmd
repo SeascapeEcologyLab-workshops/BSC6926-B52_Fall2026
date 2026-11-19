@@ -1,0 +1,151 @@
+---
+title: "Hackathon 1"
+format: 
+  html:
+    toc: true
+    theme: yeti
+---
+
+
+## Instructions
+
+Please, using quarto or rmarkdown, answer the questions below. Work in your assigned groups. Render document and turn PDF in on Canvas by the end of the workshop. 
+
+## Data for questions
+
+For Hackathon 1, you will be using a fisheries dataset from Everglades National Park in Florida Bay. The dataset (ENP_catch.csv) contains catch per unit effort (CPUE) data for three species (Red drum, Spotted seatrout, and Crevalle Jack) species in Everglades National Park between between 1980-2017. 
+
+## Questions
+
+1. (5 pts) Load the ENP_catch.csv dataset as a dataframe or tibble. Short answer question 1: What are the dimension and structure (data types) of the dataset?\
+
+```{r}
+library(tidyverse)
+
+df = read_csv('data/ENP_catch.csv')
+str(df)
+```
+Short answer question 1:
+
+2. (5 pts) Pivot the dataset from wide format to long format including a column for species and a column for CPUE. Create a new column that contains only the year.
+```{r}
+df_l = df |> 
+  pivot_longer(`Crevalle jack`:`Spotted seatrout`,names_to = 'species', values_to = 'CPUE') |> 
+  mutate(year = year(Date))
+```
+
+3. (5 pts) Calculate the mean and SD of CPUE for each year combining all species. Short answer question 3: What are the years with the highest and lowest CPUE? Are the species with the highest and lowest CPUE the same within those years?\
+```{r}
+df_s = df_l |> 
+  group_by(year) |> 
+  summarize(mean = mean(CPUE),
+            sd = sd(CPUE))
+
+# minimum year 
+df_s |> filter(mean == min(mean))
+# 2015
+
+# max year 
+df_s |> filter(mean == max(mean))
+# 1991
+
+df_l |> filter(year %in% c(1991,2015))
+
+```
+Short answer question 3:
+
+4. (5 pts) Plot the CPUE for each species with year as the x-axis. The plot should not use the default color scheme or theme.\
+```{r}
+ggplot(df_l, aes(year, CPUE, color = species))+
+  geom_point(size = 2)+
+  geom_line(linewidth = 1)+
+  scale_color_viridis_d(option = 'viridis')+
+  theme_bw()
+```
+
+
+5. (5 pts) Create a new dataset that contains only years where the CPUE is > the average CPUE for that species across all years.\
+```{r}
+d_new = df_l |> 
+  group_by(species) |> 
+  mutate(mean = mean(CPUE)) |> 
+  filter(CPUE > mean)
+
+```
+
+
+6. (10 pts) Simulate population growth over the time series for each species that has random growth from a mean and sd calculated from the mean and sd of the time series for that species. Use the CPUE of the first year of the dataset as the starting population size.\
+***Hint** - this can be done with a for loop*\
+```{r test}
+# trout 
+df_ss = df_l |> 
+  filter(species == 'Spotted seatrout') |> 
+  mutate(n = NA)
+
+start = df_ss$CPUE[df_ss$year == 1980] 
+mean = mean(df_ss$CPUE)
+sd = sd(df_ss$CPUE)
+years = df_ss$year
+
+df_ss$n[df_ss$year == 1980] = start
+df_ss
+for (t in 2:length(years)){ #sequence 
+  growth = rnorm(n =1, mean = mean, sd = sd) #extracting random value normal dist
+  df_ss$n[df_ss$year == years[t]] = growth + df_ss$n[df_ss$year == years[t-1]]
+}
+
+
+
+# Crevalle Jack
+df_cj = df_l |> 
+  filter(species == 'Crevalle jack') |> 
+  mutate(n = NA)
+
+start = df_cj$CPUE[df_cj$year == 1980] 
+mean = mean(df_cj$CPUE)
+sd = sd(df_cj$CPUE)
+years = df_cj$year
+
+df_cj$n[df_cj$year == 1980] = start
+df_cj
+for (t in 2:length(years)){ #sequence 
+  growth = rnorm(n =1, mean = mean, sd = sd) #extracting random value normal dist
+  df_cj$n[df_cj$year == years[t]] = growth + df_cj$n[df_cj$year == years[t-1]]
+}
+df_cj
+
+# Red drum
+df_rd = df_l |> 
+  filter(species == 'Red drum') |> 
+  mutate(n = NA)
+
+start = df_rd$CPUE[df_rd$year == 1980] 
+mean = mean(df_rd$CPUE)
+sd = sd(df_rd$CPUE)
+years = df_rd$year
+
+df_rd$n[df_rd$year == 1980] = start
+#df_rd
+for (t in 2:length(years)){ #sequence 
+  growth = rnorm(n =1, mean = mean, sd = sd) #extracting random value normal dist
+  df_rd$n[df_rd$year == years[t]] = growth + df_rd$n[df_rd$year == years[t-1]]
+}
+#df_rd
+```
+
+
+7. (5 pts) Plot the random population generated in question 6 and real data for each species as a multi-panel plot. Do not use the default color scheme or theme.\
+```{r test2}
+d = bind_rows(df_ss,df_cj, df_rd) |> 
+  pivot_longer(c(CPUE, n), names_to = 'type', values_to = 'value')
+
+
+ggplot(d, aes(year, value, color = type))+
+  geom_point(size = 2)+
+  geom_line(linewidth = 1)+
+  scale_color_viridis_d(option = 'viridis')+
+  facet_wrap(~species)+
+  theme_bw()
+
+```
+

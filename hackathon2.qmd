@@ -1,0 +1,33 @@
+---
+title: "Hackathon 2"
+format: 
+  html:
+    toc: true
+    theme: yeti
+---
+
+
+## Instructions
+
+Please, using quarto or rmarkdown, answer the questions below. Work in your assigned groups. Render document and turn PDF in on Canvas by the end of the workshop. 
+
+## Questions
+
+1. (10 pts) q1_figure.png shows the population of blue crabs in Louisiana from 1986-2018 in blue, as well as population projections under variable model parameters. The variation in model parameters was based parameters calculated from the real data. In your words describe (i.e. DO NOT CODE) the steps needed to recreate the figure. Which population model was used, and which parameter was more influential on the population projection?  \
+
+Short answer question 1:
+\
+2. (30 pts) For this question we will use the transition matrices from Lirman et al. 2003, which investigated the population structure of Acropora palmata corals under 3 life stages (Colonies, Fragments, and Crusts).
+a) Project the population of Acropora palmata for 50 years with a 10% probability of a low intensity storm with starting conditions of 1) colonies (N = 1000), fragments (N = 200), crust (N = 200), 2) colonies (N = 200), fragments (N = 1000), crust (N = 200), and 3) colonies (N = 200), fragments (N = 200), crust (N = 1000). Repeat the process 100 times and plot the ending population size. Which population structure was the most resilient?\ 
+
+```{r}
+
+```
+short answer 2a):
+\
+b) Project the population of Acropora palmata for 50 years with a equal population structure of colonies (N = 1000), fragments (N = 1000), crust (N = 1000) with storm intensity probabilities 1) equal (low = 5%, high = 5%), 2) higher probability of low intensity (low = 8%, high = 2%), and 3) higher probability of high intensity storm (low = 2%, high = 8%). Repeat the process 100 times and plot the endings total population size. How does storm intensity affect population resilience?\
+```{r}
+
+```
+short answer 2b):
+\

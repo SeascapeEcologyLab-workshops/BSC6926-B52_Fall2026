@@ -1,0 +1,61 @@
+---
+title: "Hackathon 1"
+format: 
+  html:
+    toc: true
+    theme: yeti
+---
+
+
+## Instructions
+
+Please, using quarto or rmarkdown, answer the questions below. Work in your assigned groups. Render document and turn PDF in on Canvas by the end of the workshop. 
+
+## Data for questions
+
+For Hackathon 1, you will be using a fisheries dataset from Everglades National Park in Florida Bay. The dataset (ENP_catch.csv) contains catch per unit effort (CPUE) data for three species (Red drum, Spotted seatrout, and Crevalle Jack) species in Everglades National Park between between 1980-2017. 
+
+## Questions
+
+1. (5 pts) Load the ENP_catch.csv dataset as a dataframe or tibble. Short answer question 1: What are the dimension and structure (data types) of the dataset?\
+
+```{r}
+
+```
+Short answer question 1:
+
+2. (5 pts) Pivot the dataset from wide format to long format including a column for species and a column for CPUE. Create a new column that contains only the year.
+```{r}
+
+```
+
+3. (5 pts) Calculate the mean and SD of CPUE for each year combining all species. Short answer question 3: What are the years with the highest and lowest CPUE? Are the species with the highest and lowest CPUE the same within those years?\
+```{r}
+
+```
+Short answer question 3:
+
+4. (5 pts) Plot the CPUE for each species with year as the x-axis. The plot should not use the default color scheme or theme.\
+```{r}
+
+```
+
+
+5. (5 pts) Create a new dataset that contains only years where the CPUE is > the average CPUE for that species across all years.\
+```{r}
+
+```
+
+
+6. (10 pts) Simulate population growth over the time series for each species that has random growth from a mean and sd calculated from the mean and sd of the time series for that species. Use the CPUE of the first year of the dataset as the starting population size.\
+***Hint** - this can be done with a for loop*\
+```{r}
+
+```
+
+
+7. (5 pts) Plot the random population generated in question 6 and real data for each species as a multi-panel plot. Do not use the default color scheme or theme.\
+```{r}
+
+```
+
