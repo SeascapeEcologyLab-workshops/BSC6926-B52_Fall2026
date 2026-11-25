@@ -1,0 +1,267 @@
+---
+title: "Hackathon 2"
+format: 
+  html:
+    toc: true
+    theme: yeti
+---
+
+
+## Instructions
+
+Please, using quarto or rmarkdown, answer the questions below. Work in your assigned groups. Render document and turn PDF in on Canvas by the end of the workshop. 
+
+## Questions
+
+1. (10 pts) q1_figure.png shows the population of blue crabs in Louisiana from 1986-2018 in blue, as well as population projections under variable model parameters. The variation in model parameters was based parameters calculated from the real data. In your words describe (i.e. DO NOT CODE) the steps needed to recreate the figure. Which population model was used, and which parameter was more influential on the population projection?  \
+
+Short answer question 1:
+The figure was created using a **density-dependent logistic population growth model**, incorporating variation in either the population growth rate ($r$) or carrying capacity ($K$).
+
+1. **Prepare population data (2 pts):** Calculate annual blue crab abundance from 1986–2018 and determine the initial population size ($N_0$) using the first year of observations.
+
+2. **Estimate model parameters (3 pts):** Calculate annual population growth rates ($\lambda = N_{t+1}/N_t$) and estimate the average growth rate and its variability. Estimate carrying capacity ($K$) using the relationship between per capita population growth and population abundance.
+
+3. **Simulate population dynamics (3 pts):** Use the discrete logistic growth equation:
+
+   $$
+   N_{t+1} = N_t + rN_t\left(1-\frac{N_t}{K}\right)
+   $$
+
+   Run 100 simulations from 1986–2018 for each scenario. In one scenario, randomly vary $K$ while holding $r$ constant. In the other, randomly vary $r$ while holding $K$ constant. Random parameter values are drawn from distributions based on the estimated means and variability, restricted to positive values.
+
+4. **Visualize and interpret (2 pts):** Plot the simulated population trajectories alongside observed blue crab abundance to compare how variation in each parameter influences population projections.
+
+**Most influential parameter:** The parameter producing the wider spread among simulated population trajectories is considered more influential which was $r$. Variation in $r$ affects the rate and short-term variability of population change, whereas variation in $K$ affects the population size around which projections fluctuate.
+```{r}
+library(tidyverse)
+df = read_csv(url('https://raw.githubusercontent.com/SeascapeEcologyLab-workshops/BSC6926-B53B_Spring2025/refs/heads/main/data/LDWFseinedata.csv'))
+
+
+
+d = df |> 
+  mutate(date = ymd(date),
+         year = year(date)) |> 
+  group_by(species, year) |> 
+  summarize(n = sum(num, na.rm = T),
+            .groups = 'drop') |> 
+  filter(species %in% c('Blue Crab', 'Atlantic Croaker',
+                        'White Shrimp', 'Brown Shrimp',
+                        'Gulf Menhaden', 'Bay Anchovy'),
+         year < 2019)
+
+
+df_k = d |> 
+  group_by(species) |>
+  mutate(lambda = lead(n)/n,
+         percap = (lead(n)-n)/n) |> 
+  nest() |> 
+  mutate(lm = map(data, \(data) lm(percap~ n, data = data)),
+         K = map_dbl(lm, \(lm) -lm$coefficients[1]/lm$coefficients[2]),
+         K_sd = map_dbl(data, \(data) sd(data$n)/2)) |> 
+  select(species, K, K_sd)
+
+library(DescTools)
+
+g = d |> 
+  group_by(species) |>
+  mutate(lambda = lead(n)/n,
+         percap = (lead(n)-n)/n) |>  
+  summarize(l_m = Gmean(lambda, na.rm = T),
+            l_sd = Gsd(lambda, na.rm = T),
+            .groups = 'drop') |> 
+  mutate(rd = l_m -1)
+
+n0 = d |> 
+  filter(year == min(year)) |> 
+  select(species, N_0 = n)
+
+
+dirand = function(l_mean, l_sd, N_0, years) {
+  pop = tibble(Nt = NA, time = 0:years) |> 
+    mutate(Nt = if_else(time == 0, N_0, Nt),
+           lambda = truncnorm::rtruncnorm(n(), mean = l_mean, sd = l_sd, a=0, b=Inf))
+  
+  for(i in 2:nrow(pop)){
+    pop$Nt[i] = pop$lambda[i-1] * pop$Nt[i-1]
+  }
+  
+  return(pop)
+}
+
+dd_r = function(K, l_m, l_sd, N_0, years) {
+  logis = tibble(Nt = NA, year = years)
+  logis$Nt[logis$year == min(years)] = N_0
+  
+  for(i in 1:(length(years)-1)){
+    lambda = truncnorm::rtruncnorm(1, mean = l_m, sd = l_sd, a=0, b=Inf)
+    rd = lambda - 1
+    logis$Nt[i+1] = max(
+      0,
+      logis$Nt[i] + rd * logis$Nt[i] * (1 - logis$Nt[i] / K)
+    )
+  }
+  return(logis)
+}
+
+dd_k = function(K_m, K_sd, rd, N_0, years) {
+  logis = tibble(Nt = NA, year = years)
+  logis$Nt[logis$year == min(years)] = N_0
+  
+  for(i in 1:(length(years)-1)){
+    K = truncnorm::rtruncnorm(1, mean = K_m, sd = K_sd, a=0, b=Inf)
+    logis$Nt[i+1] = max(
+      0,
+      logis$Nt[i] + rd * logis$Nt[i] * (1 - logis$Nt[i] / K)
+    )
+  }
+  return(logis)
+}
+
+reps = 100
+
+k_ran = df_k |> 
+  left_join(g) |> 
+  left_join(n0) |> 
+  ungroup() |> 
+  slice(rep(1:n(), each=reps))|> 
+  mutate(i = rep(1:reps, times=nrow(df_k)),
+         k_ran = pmap(list(K,K_sd,rd,N_0), \(K_m, K_sd,rd,N_0) 
+                      dd_k(K_m, K_sd, rd, N_0, years =1986:2018)),
+         type = 'Random K') |> 
+  unnest(cols = k_ran)
+
+r_ran = df_k |> 
+  left_join(g) |> 
+  left_join(n0) |> 
+  ungroup() |> 
+  slice(rep(1:n(), each=reps))|> 
+  mutate(i = rep(1:reps, times=nrow(df_k)),
+         r_ran = pmap(list(K,l_m,l_sd,N_0), \(K,l_m,l_sd,N_0) 
+                      dd_r(K,l_m,l_sd,N_0, years =1986:2018)),
+         type = 'Random rd') |> 
+  unnest(cols = r_ran)
+
+
+# ggplot(k_ran, aes(year, Nt, group = i))+
+#   geom_hline(data = df_k, aes(yintercept = K))+
+#   geom_line(linewidth = 0.5)+
+#   facet_wrap(~species, scales = 'free')
+# 
+# ggplot(r_ran, aes(year, Nt, group = i))+
+#   geom_hline(data = df_k, aes(yintercept = K))+
+#   geom_line(linewidth = 0.5)+
+#   facet_wrap(~species, scales = 'free')
+
+
+df_t = bind_rows(k_ran, r_ran)
+
+ggplot(df_t |> filter(species == 'Blue Crab'), aes(year, Nt))+
+  geom_line(aes(group = i),linewidth = 0.5, alpha = 0.3)+
+  geom_point(data = d|> filter(species == 'Blue Crab'), aes(y = n), 
+             color = 'dodgerblue3', size = 2)+
+  geom_line(data = d|> filter(species == 'Blue Crab'), aes(y = n), 
+            color = 'dodgerblue3', linewidth = 1)+
+  facet_wrap(~type)+
+  labs(x = 'Year', y = expression(italic(N[t])))+
+  theme_bw(base_size = 16)
+
+#ggsave('data/q1_figure.png', dpi = 600, width = 10, height = 6, units = 'in')
+
+```
+
+\
+2. (30 pts) For this question we will use the transition matrices from Lirman et al. 2003, which investigated the population structure of Acropora palmata corals under 3 life stages (Colonies, Fragments, and Crusts).
+a) Project the population of Acropora palmata for 50 years with a 10% probability of a low intensity storm with starting conditions of 1) colonies (N = 1000), fragments (N = 200), crust (N = 200), 2) colonies (N = 200), fragments (N = 1000), crust (N = 200), and 3) colonies (N = 200), fragments (N = 200), crust (N = 1000). Repeat the process 100 times and plot the ending population size. Which population structure was the most resilient?\ 
+
+```{r}
+library(popbio)
+file_names = c(
+  Normal = "data/projection_matrix_normal.csv",
+  Low    = "data/projection_matrix_low.csv",
+  Medium = "data/projection_matrix_medium.csv",
+  High   = "data/projection_matrix_high.csv"
+)
+
+matrix_list = map(file_names, function(file) {
+  df = read_csv(file, show_col_types = FALSE)
+  mat = as.matrix(df[, -1])
+  rownames(mat) = df[[1]]
+  return(mat)
+})
+
+# Access individual matrices from the list
+A_normal = matrix_list[["Normal"]]
+A_low    = matrix_list[["Low"]]
+A_medium = matrix_list[["Medium"]]
+A_high   = matrix_list[["High"]]
+
+
+
+q2a = list(A_normal, A_low)
+
+p1 = c(Colonies = 1000, Fragments = 200, Crusts = 200)
+p2 = c(Colonies = 200, Fragments = 1000, Crusts = 200)
+p3 = c(Colonies = 200, Fragments = 200, Crusts = 1000)
+
+pp1 = stoch.projection(matrices = q2a, n0 = p1, tmax = 50, nreps = 100, prob = c(0.9, 0.1)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'Colonies')
+
+pp2 = stoch.projection(matrices = q2a, n0 = p2, tmax = 50, nreps = 100, prob = c(0.9, 0.1)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'Fragments')
+
+pp3 = stoch.projection(matrices = q2a, n0 = p3, tmax = 50, nreps = 100, prob = c(0.9, 0.1)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'Crusts')
+
+pp = bind_rows(pp1, pp2, pp3)
+
+ggplot(pp, aes(total, fill = type)) +
+  geom_density(alpha = 0.5) +
+  labs(x = 'Ending population size', color = NULL) +
+  theme_bw()
+```
+short answer 2a):
+\
+b) Project the population of Acropora palmata for 50 years with a equal population structure of colonies (N = 1000), fragments (N = 1000), crust (N = 1000) with storm intensity probabilities 1) equal (low = 5%, high = 5%), 2) higher probability of low intensity (low = 8%, high = 2%), and 3) higher probability of high intensity storm (low = 2%, high = 8%). Repeat the process 100 times and plot the endings total population size. How does storm intensity affect population resilience?\
+```{r}
+q2b = list(A_normal, A_low, A_high)
+
+p = c(Colonies = 1000, Fragments = 1000, Crusts = 1000)
+
+ps1 = stoch.projection(matrices = q2b, n0 = p, tmax = 50, nreps = 100, prob = c(0.9, 0.05, 0.05)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'equal')
+
+ps2 = stoch.projection(matrices = q2b, n0 = p, tmax = 50, nreps = 100, prob = c(0.9, 0.08, 0.02)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'higher low')
+
+ps3 = stoch.projection(matrices = q2b, n0 = p, tmax = 50, nreps = 100, prob = c(0.9, 0.02, 0.02)) |> 
+  as_tibble() |>  
+  mutate(rep = row_number(),
+         total = Colonies + Fragments + Crusts,
+         type = 'higher high')
+
+ps = bind_rows(ps1, ps2, ps3)
+
+ggplot(ps, aes(total, fill = type)) +
+  geom_density(alpha = 0.5) +
+  labs(x = 'Ending population size', color = NULL) +
+  theme_bw()
+
+```
+short answer 2b):
+\

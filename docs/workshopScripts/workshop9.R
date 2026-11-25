@@ -178,7 +178,7 @@ ggplot(tl_init, aes(factor(month), len, group = basin, color = basin))+
                                  'Nov', 'Dec'))+
       scale_color_viridis_d()+
       theme_bw()+
-      theme(legend.position = 'none')
+      theme(legend.position = 'bottom')
 
 
 # ### Cumulative distance 
